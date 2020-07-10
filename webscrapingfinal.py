@@ -3,14 +3,13 @@ from bs4 import BeautifulSoup
 import sqlite3
 import schedule 
 import time 
+import smtplib, ssl
 
 conn = sqlite3.connect('scraping.db')
 
-def takingemailidfromtheuser():
-  name=input("Enter name\n")
-  mailid=input("Enter e-mail id\n")
+global finalstr=""
 
-def wesite1scraped():
+def scrapequotes():
     conn.execute('''CREATE TABLE if not exists tablenew
                 (counter int,date text)''')
     count=0
@@ -30,6 +29,9 @@ def wesite1scraped():
             print(row)
             finalstr=finalstr+"\n"+row[1]
         conn.commit()
+
+
+global finalstr2=""        
 def scrapeBooks(url,count=1,urlNum=1):
     conn.execute('''CREATE TABLE if not exists table2
                 (data1 text,data2 text)''')
@@ -44,6 +46,7 @@ def scrapeBooks(url,count=1,urlNum=1):
         price1=anotherSoup[i].find('p',attrs='price_color').text
         ar=[title1,price1]
         conn.execute("INSERT INTO table2 VALUES (?,?)",ar)
+        finalstr2=finalstr2+title1+price1+"\n"
         conn.commit() 
         count+=1
     if(len(soup2.findAll('li',attrs={'class','next'}))==1):
@@ -62,18 +65,35 @@ def scrapeBooks(url,count=1,urlNum=1):
             print()
             urlNum+=1
             scrapeBooks(url,count,urlNum)         
+def sendingdatabasethroughmail():
+  port = 465  # For SSL
+  smtp_server = "smtp.gmail.com"
+  mailid=input("Enter e-mail id\n")
+  sender_email = "khushigupta515@gmail.com"  # Enter your address
+  receiver_email = mailid # Enter receiver address
+  password = input("Type your password and press enter: ")
+  message = """\
+   Subject: Hi there
+
+   This message is sent from Python."""+finalstr+finalstr2
+
+  context = ssl.create_default_context()
+  with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
+        server.login(sender_email, password)
+        server.sendmail(sender_email, receiver_email, message)
 
 
  
 
 
 
-takingemailidfromtheuser()        
-wesite1scraped()
+       
+scrapequotes()
 url = "http://books.toscrape.com/"          
 scrapeBooks(url)
+sendingdatabasethroughmail()
 lambda : scrapeBooks(url)
-schedule.every().day.at("00:00").do(wesite1scraped)
+schedule.every().day.at("00:00").do(scrapequotes)
 schedule.every().day.at("00:00").do(lambda : scrapeBooks(url))
 
 while True: 
